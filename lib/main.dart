@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'database/database_helper.dart';
+import 'screens/login_screen.dart';
+import 'screens/register_screen.dart';
 
-import 'screens/home_screen.dart';
-import 'screens/products_screen.dart';
-import 'screens/cart_screen.dart';
-import 'screens/orders_screen.dart';
-import 'screens/profile_screen.dart';
-import 'screens/address_screen.dart';
-import 'screens/settings_screen.dart';
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
 
-void main() {
+  sqfliteFfiInit();
+  databaseFactory = databaseFactoryFfi;
+
+  await DatabaseHelper.instance.database;
+  await DatabaseHelper.instance.createDefaultFarmer();
+
   runApp(const FarmerMarketplaceApp());
 }
 
@@ -20,22 +24,14 @@ class FarmerMarketplaceApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: "Farmer Marketplace",
-
       theme: ThemeData(
         primarySwatch: Colors.green,
         scaffoldBackgroundColor: Colors.grey.shade100,
       ),
-
-      initialRoute: "/home",
-
+      initialRoute: "/login",
       routes: {
-        "/home": (context) => const HomeScreen(),
-        "/products": (context) => const ProductsScreen(),
-        "/cart": (context) => const CartScreen(),
-        "/orders": (context) => const OrdersScreen(),
-        "/profile": (context) => const ProfileScreen(),
-        "/address": (context) => const AddressScreen(),
-        "/settings": (context) => const SettingsScreen(),
+        "/login": (context) => const LoginScreen(),
+        "/register": (context) => const RegisterScreen(),
       },
     );
   }

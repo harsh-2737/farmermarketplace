@@ -1,63 +1,98 @@
 import 'package:flutter/material.dart';
+import '../database/database_helper.dart';
 import '../widgets/app_drawer.dart';
+import '../widgets/farmer_app_drawer.dart';
 import '../models/product.dart';
+import '../models/user.dart';
+import 'product_details_screen.dart';
+import 'products_screen.dart';
+import 'cart_screen.dart';
 
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+class HomeScreen extends StatefulWidget {
+  final User user;
+
+  const HomeScreen({
+    super.key,
+    required this.user,
+  });
+
+  @override
+  State<HomeScreen> createState() =>
+      _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  String selectedCategory = "All";
+  String searchText = "";
+
+  List<Product> products = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProducts();
+  }
+
+  Future<void> _loadProducts() async {
+    if (mounted) {
+      setState(() {
+        isLoading = true;
+      });
+    }
+
+    final result =
+    await DatabaseHelper.instance.getAllProducts();
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      products = result
+          .map((product) => Product.fromMap(product))
+          .toList();
+      isLoading = false;
+    });
+  }
+
+  List<Product> get selectedProducts {
+    List<Product> filteredProducts =
+    List.from(products);
+
+    filteredProducts.sort(
+          (a, b) => b.createdAt.compareTo(
+        a.createdAt,
+      ),
+    );
+
+    if (selectedCategory != "All") {
+      filteredProducts = filteredProducts
+          .where(
+            (product) =>
+        product.category.toLowerCase() ==
+            selectedCategory.toLowerCase(),
+      )
+          .toList();
+    }
+
+    if (searchText.isNotEmpty) {
+      filteredProducts = filteredProducts
+          .where(
+            (product) => product.name
+            .toLowerCase()
+            .contains(
+          searchText.toLowerCase(),
+        ),
+      )
+          .toList();
+    }
+
+    return filteredProducts.take(4).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final List<Product> products = [
-      Product(
-        id: 1,
-        name: "Fresh Tomatoes",
-        category: "Vegetables",
-        price: 40,
-        quantity: 50,
-        unit: "kg",
-        image: "",
-        description: "Fresh tomatoes directly from the farmer.",
-        farmerId: 101,
-        farmerName: "Ramesh Patel",
-      ),
-      Product(
-        id: 2,
-        name: "Fresh Wheat",
-        category: "Grains",
-        price: 35,
-        quantity: 100,
-        unit: "kg",
-        image: "",
-        description: "Quality wheat directly from the farmer.",
-        farmerId: 102,
-        farmerName: "Suresh Patel",
-      ),
-      Product(
-        id: 3,
-        name: "Fresh Potatoes",
-        category: "Vegetables",
-        price: 30,
-        quantity: 80,
-        unit: "kg",
-        image: "",
-        description: "Fresh potatoes from local farmers.",
-        farmerId: 103,
-        farmerName: "Mahesh Patel",
-      ),
-      Product(
-        id: 4,
-        name: "Basmati Rice",
-        category: "Grains",
-        price: 60,
-        quantity: 70,
-        unit: "kg",
-        image: "",
-        description: "Premium quality basmati rice.",
-        farmerId: 104,
-        farmerName: "Rajesh Patel",
-      ),
-    ];
-
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -73,190 +108,274 @@ class HomeScreen extends StatelessWidget {
               Icons.shopping_cart_outlined,
             ),
             onPressed: () {
-              Navigator.pushNamed(
+              Navigator.push(
                 context,
-                "/cart",
+                MaterialPageRoute(
+                  builder: (context) =>
+                      CartScreen(
+                        user: widget.user,
+                      ),
+                ),
               );
             },
           ),
         ],
       ),
-      drawer: const AppDrawer(
+      drawer: widget.user.role == "Farmer"
+          ? FarmerAppDrawer(
+        selectedRoute:
+        "/farmer-dashboard",
+        user: widget.user,
+      )
+          : AppDrawer(
         selectedRoute: "/home",
+        user: widget.user,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(22),
-              decoration: BoxDecoration(
-                color: Colors.green.shade700,
-                borderRadius: BorderRadius.circular(20),
+      body: isLoading
+          ? const Center(
+        child: CircularProgressIndicator(),
+      )
+          : RefreshIndicator(
+        onRefresh: _loadProducts,
+        child: SingleChildScrollView(
+          physics:
+          const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment:
+            CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: double.infinity,
+                padding:
+                const EdgeInsets.all(22),
+                decoration: BoxDecoration(
+                  color:
+                  Colors.green.shade700,
+                  borderRadius:
+                  BorderRadius.circular(
+                    20,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment:
+                  CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Welcome, ${widget.user.name} 🌾",
+                      style:
+                      const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight:
+                        FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(
+                      height: 8,
+                    ),
+                    const Text(
+                      "Fresh products directly from farmers",
+                      style:
+                      TextStyle(
+                        color:
+                        Colors.white70,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              child: const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(
+                height: 20,
+              ),
+              TextField(
+                onChanged: (value) {
+                  setState(() {
+                    searchText = value;
+                  });
+                },
+                decoration:
+                InputDecoration(
+                  hintText:
+                  "Search products...",
+                  prefixIcon:
+                  const Icon(
+                    Icons.search,
+                  ),
+                  filled: true,
+                  fillColor:
+                  Colors.white,
+                  border:
+                  OutlineInputBorder(
+                    borderRadius:
+                    BorderRadius
+                        .circular(
+                      15,
+                    ),
+                    borderSide:
+                    BorderSide.none,
+                  ),
+                ),
+              ),
+              const SizedBox(
+                height: 28,
+              ),
+              const Text(
+                "Categories",
+                style: TextStyle(
+                  fontSize: 21,
+                  fontWeight:
+                  FontWeight.bold,
+                ),
+              ),
+              const SizedBox(
+                height: 15,
+              ),
+              SingleChildScrollView(
+                scrollDirection:
+                Axis.horizontal,
+                child: Row(
+                  children: [
+                    _categoryCard(
+                      Icons.apps,
+                      "All",
+                    ),
+                    _categoryCard(
+                      Icons.grass,
+                      "Grains",
+                    ),
+                    _categoryCard(
+                      Icons.eco,
+                      "Vegetables",
+                    ),
+                    _categoryCard(
+                      Icons.apple,
+                      "Fruits",
+                    ),
+                    _categoryCard(
+                      Icons.local_drink,
+                      "Dairy",
+                    ),
+                    _categoryCard(
+                      Icons.spa,
+                      "Spices",
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(
+                height: 30,
+              ),
+              Row(
+                mainAxisAlignment:
+                MainAxisAlignment
+                    .spaceBetween,
                 children: [
                   Text(
-                    "Welcome to Farmer Marketplace 🌾",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
+                    selectedCategory ==
+                        "All"
+                        ? "Latest Products"
+                        : "Latest $selectedCategory",
+                    style:
+                    const TextStyle(
+                      fontSize: 21,
+                      fontWeight:
+                      FontWeight.bold,
                     ),
                   ),
-                  SizedBox(height: 8),
-                  Text(
-                    "Fresh products directly from farmers",
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 15,
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (context) =>
+                              ProductsScreen(
+                                selectedCategory:
+                                selectedCategory,
+                                user:
+                                widget.user,
+                              ),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      "View All",
                     ),
                   ),
                 ],
               ),
-            ),
-
-            const SizedBox(height: 20),
-
-            TextField(
-              decoration: InputDecoration(
-                hintText: "Search products...",
-                prefixIcon: const Icon(
-                  Icons.search,
-                ),
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(15),
-                  borderSide: BorderSide.none,
-                ),
+              const SizedBox(
+                height: 12,
               ),
-            ),
-
-            const SizedBox(height: 28),
-
-            const Text(
-              "Categories",
-              style: TextStyle(
-                fontSize: 21,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-
-            const SizedBox(height: 15),
-
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _categoryCard(
-                    Icons.grass,
-                    "Grains",
-                  ),
-                  _categoryCard(
-                    Icons.eco,
-                    "Vegetables",
-                  ),
-                  _categoryCard(
-                    Icons.apple,
-                    "Fruits",
-                  ),
-                  _categoryCard(
-                    Icons.local_drink,
-                    "Dairy",
-                  ),
-                  _categoryCard(
-                    Icons.spa,
-                    "Spices",
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 30),
-
-            Row(
-              mainAxisAlignment:
-              MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  "Featured Products",
-                  style: TextStyle(
-                    fontSize: 21,
-                    fontWeight: FontWeight.bold,
-                  ),
+              selectedProducts.isEmpty
+                  ? _buildEmptyProducts()
+                  : GridView.builder(
+                shrinkWrap: true,
+                physics:
+                const NeverScrollableScrollPhysics(),
+                itemCount:
+                selectedProducts
+                    .length,
+                gridDelegate:
+                const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 4,
+                  crossAxisSpacing:
+                  8,
+                  mainAxisSpacing:
+                  10,
+                  childAspectRatio:
+                  0.68,
                 ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.pushNamed(
-                      context,
-                      "/products",
-                    );
-                  },
-                  child: const Text(
-                    "View All",
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 12),
-
-            SizedBox(
-              height: 165,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: products.length,
-                itemBuilder: (context, index) {
+                itemBuilder:
+                    (context, index) {
                   return _productCard(
                     context,
-                    products[index],
+                    selectedProducts[
+                    index],
                   );
                 },
               ),
-            ),
-
-            const SizedBox(height: 30),
-
-            const Text(
-              "Why Farmer Marketplace?",
-              style: TextStyle(
-                fontSize: 21,
-                fontWeight: FontWeight.bold,
+              const SizedBox(
+                height: 30,
               ),
-            ),
-
-            const SizedBox(height: 15),
-
-            _benefitCard(
-              Icons.eco,
-              "Fresh Products",
-              "Get fresh agricultural products directly from farmers.",
-            ),
-
-            _benefitCard(
-              Icons.currency_rupee,
-              "Fair Prices",
-              "Buy products at fair prices directly from producers.",
-            ),
-
-            _benefitCard(
-              Icons.agriculture,
-              "Support Farmers",
-              "Help local farmers by purchasing directly from them.",
-            ),
-
-            _benefitCard(
-              Icons.local_shipping_outlined,
-              "Easy Delivery",
-              "Get your products delivered conveniently.",
-            ),
-
-            const SizedBox(height: 20),
-          ],
+              const Text(
+                "Why Farmer Marketplace?",
+                style: TextStyle(
+                  fontSize: 21,
+                  fontWeight:
+                  FontWeight.bold,
+                ),
+              ),
+              const SizedBox(
+                height: 15,
+              ),
+              _benefitCard(
+                Icons.eco,
+                "Fresh Products",
+                "Get fresh agricultural products directly from farmers.",
+              ),
+              _benefitCard(
+                Icons.currency_rupee,
+                "Fair Prices",
+                "Buy products at fair prices directly from producers.",
+              ),
+              _benefitCard(
+                Icons.agriculture,
+                "Support Farmers",
+                "Help local farmers by purchasing directly from them.",
+              ),
+              _benefitCard(
+                Icons.local_shipping_outlined,
+                "Easy Delivery",
+                "Get your products delivered conveniently.",
+              ),
+              const SizedBox(
+                height: 20,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -266,39 +385,60 @@ class HomeScreen extends StatelessWidget {
       IconData icon,
       String title,
       ) {
-    return Container(
-      width: 105,
-      margin: const EdgeInsets.only(right: 12),
-      padding: const EdgeInsets.symmetric(
-        vertical: 16,
-        horizontal: 10,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.shade300,
-            blurRadius: 5,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Icon(
-            icon,
-            size: 34,
-            color: Colors.green.shade700,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            style: const TextStyle(
-              fontWeight: FontWeight.w600,
+    final isSelected =
+        selectedCategory == title;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          selectedCategory = title;
+        });
+      },
+      child: Container(
+        width: 105,
+        margin:
+        const EdgeInsets.only(right: 12),
+        padding:
+        const EdgeInsets.symmetric(
+          vertical: 16,
+          horizontal: 10,
+        ),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? Colors.green.shade700
+              : Colors.white,
+          borderRadius:
+          BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.shade300,
+              blurRadius: 5,
+              offset: const Offset(0, 2),
             ),
-          ),
-        ],
+          ],
+        ),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              size: 34,
+              color: isSelected
+                  ? Colors.white
+                  : Colors.green.shade700,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: TextStyle(
+                fontWeight:
+                FontWeight.w600,
+                color: isSelected
+                    ? Colors.white
+                    : Colors.black,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -307,115 +447,232 @@ class HomeScreen extends StatelessWidget {
       BuildContext context,
       Product product,
       ) {
-    return Container(
-      width: 145,
-      margin: const EdgeInsets.only(right: 12),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.shade300,
-            blurRadius: 5,
-            offset: const Offset(0, 2),
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                ProductDetailsScreen(
+                  product: product,
+                  user: widget.user,
+                ),
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              height: 50,
-              width: 50,
-              decoration: BoxDecoration(
-                color: Colors.green.shade50,
-                borderRadius: BorderRadius.circular(12),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius:
+          BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.shade300,
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding:
+          const EdgeInsets.all(8),
+          child: Column(
+            children: [
+              Expanded(
+                child: Center(
+                  child: Icon(
+                    _getProductIcon(
+                      product.category,
+                    ),
+                    size: 40,
+                    color:
+                    Colors.green.shade700,
+                  ),
+                ),
               ),
-              child: Icon(
-                _getProductIcon(product.category),
-                size: 30,
-                color: Colors.green.shade700,
+              Text(
+                product.name,
+                maxLines: 1,
+                overflow:
+                TextOverflow.ellipsis,
+                textAlign:
+                TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight:
+                  FontWeight.bold,
+                ),
               ),
-            ),
-          ),
-
-          const SizedBox(height: 6),
-
-          Text(
-            product.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-
-          const SizedBox(height: 2),
-
-          Text(
-            "₹${product.price.toStringAsFixed(2)} / ${product.unit}",
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.green.shade700,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-
-          const SizedBox(height: 2),
-
-          Text(
-            "By ${product.farmerName}",
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 10,
-              color: Colors.grey.shade600,
-            ),
-          ),
-
-          const Spacer(),
-
-          SizedBox(
-            width: double.infinity,
-            height: 30,
-            child: ElevatedButton.icon(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      "${product.name} added to cart",
+              const SizedBox(
+                height: 3,
+              ),
+              Text(
+                "₹${product.price.toStringAsFixed(0)} / ${product.unit}",
+                maxLines: 1,
+                overflow:
+                TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  color:
+                  Colors.green.shade700,
+                  fontWeight:
+                  FontWeight.bold,
+                ),
+              ),
+              const SizedBox(
+                height: 3,
+              ),
+              Text(
+                product.farmerName,
+                maxLines: 1,
+                overflow:
+                TextOverflow.ellipsis,
+                textAlign:
+                TextAlign.center,
+                style: TextStyle(
+                  fontSize: 10,
+                  color:
+                  Colors.grey.shade600,
+                ),
+              ),
+              const SizedBox(
+                height: 7,
+              ),
+              Container(
+                width:
+                double.infinity,
+                height: 28,
+                decoration:
+                BoxDecoration(
+                  color:
+                  Colors.green.shade50,
+                  borderRadius:
+                  BorderRadius.circular(
+                    7,
+                  ),
+                ),
+                child: Center(
+                  child: Text(
+                    "View Details",
+                    style: TextStyle(
+                      color: Colors.green
+                          .shade700,
+                      fontSize: 10,
+                      fontWeight:
+                      FontWeight.bold,
                     ),
                   ),
-                );
-              },
-              icon: const Icon(
-                Icons.shopping_cart_outlined,
-                size: 15,
-              ),
-              label: const Text(
-                "Add",
-                style: TextStyle(
-                  fontSize: 12,
                 ),
               ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green.shade700,
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.zero,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
-  IconData _getProductIcon(String category) {
+
+  Widget _buildEmptyProducts() {
+    return Center(
+      child: Padding(
+        padding:
+        const EdgeInsets.symmetric(
+          vertical: 40,
+        ),
+        child: Column(
+          children: [
+            Icon(
+              Icons.inventory_2_outlined,
+              size: 60,
+              color: Colors.grey.shade400,
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              "No Products Available",
+              style: TextStyle(
+                fontSize: 19,
+                fontWeight:
+                FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _benefitCard(
+      IconData icon,
+      String title,
+      String description,
+      ) {
+    return Card(
+      margin:
+      const EdgeInsets.only(
+        bottom: 12,
+      ),
+      child: Padding(
+        padding:
+        const EdgeInsets.all(15),
+        child: Row(
+          children: [
+            Container(
+              padding:
+              const EdgeInsets.all(12),
+              decoration:
+              BoxDecoration(
+                color:
+                Colors.green.shade50,
+                borderRadius:
+                BorderRadius.circular(
+                  12,
+                ),
+              ),
+              child: Icon(
+                icon,
+                color:
+                Colors.green.shade700,
+                size: 28,
+              ),
+            ),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Column(
+                crossAxisAlignment:
+                CrossAxisAlignment
+                    .start,
+                children: [
+                  Text(
+                    title,
+                    style:
+                    const TextStyle(
+                      fontSize: 16,
+                      fontWeight:
+                      FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(
+                    height: 4,
+                  ),
+                  Text(
+                    description,
+                    style: TextStyle(
+                      color: Colors
+                          .grey.shade600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  IconData _getProductIcon(
+      String category,
+      ) {
     switch (category.toLowerCase()) {
       case "vegetables":
         return Icons.eco;
@@ -430,62 +687,5 @@ class HomeScreen extends StatelessWidget {
       default:
         return Icons.agriculture;
     }
-  }
-
-  Widget _benefitCard(
-      IconData icon,
-      String title,
-      String description,
-      ) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(15),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.green.shade50,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                icon,
-                color: Colors.green.shade700,
-                size: 28,
-              ),
-            ),
-
-            const SizedBox(width: 15),
-
-            Expanded(
-              child: Column(
-                crossAxisAlignment:
-                CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-
-                  const SizedBox(height: 4),
-
-                  Text(
-                    description,
-                    style: TextStyle(
-                      color: Colors.grey.shade600,
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }
