@@ -64,8 +64,6 @@ class FirebaseDatabaseHelper {
     });
   }
 
-  Future<void> get database async {}
-
   Future<int> insertUser(Map<String, dynamic> user) async {
     final id = await _getNextId('users');
 
@@ -1080,6 +1078,4 @@ class FirebaseDatabaseHelper {
       });
     }
   }
-
-  Future<void> closeDatabase() async {}
 }
