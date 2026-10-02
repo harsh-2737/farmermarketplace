@@ -1,17 +1,23 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'database/database_helper.dart';
+import 'firebase_options.dart';
+import 'database/firebase_database_helper.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
+
+import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  sqfliteFfiInit();
-  databaseFactory = databaseFactoryFfi;
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
-  await DatabaseHelper.instance.database;
-  await DatabaseHelper.instance.createDefaultFarmer();
+  final database = FirebaseDatabaseHelper.instance;
+
+  await database.createDefaultCategories();
+  await database.createDefaultFarmer();
 
   runApp(const FarmerMarketplaceApp());
 }
@@ -24,10 +30,7 @@ class FarmerMarketplaceApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: "Farmer Marketplace",
-      theme: ThemeData(
-        primarySwatch: Colors.green,
-        scaffoldBackgroundColor: Colors.grey.shade100,
-      ),
+      theme: AppTheme.lightTheme,
       initialRoute: "/login",
       routes: {
         "/login": (context) => const LoginScreen(),

@@ -1,0 +1,39 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "farmermarketplace-5577c",
+          "appId": "1:661069302832:android:25beac5d66356093f6f1f5",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "farmermarketplace-5577c",
+          "configurations": {
+            "android": "1:661069302832:android:25beac5d66356093f6f1f5",
+            "ios": "1:661069302832:ios:2cad862a5179b5e4f6f1f5",
+            "macos": "1:661069302832:ios:2cad862a5179b5e4f6f1f5",
+            "web": "1:661069302832:web:309042e97beb0fb4f6f1f5",
+            "windows": "1:661069302832:web:e750239eacd96f2df6f1f5"
+          }
+        }
+      }
+    }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "disallowLegacyRuntimeConfig": true,
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    }
+  ]
+}

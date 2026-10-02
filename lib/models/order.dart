@@ -8,6 +8,9 @@ class Order {
   String city;
   String state;
   String pincode;
+  String paymentMethod;
+  String paymentStatus;
+  String? paymentId;
 
   Order({
     required this.id,
@@ -19,6 +22,9 @@ class Order {
     required this.city,
     required this.state,
     required this.pincode,
+    required this.paymentMethod,
+    required this.paymentStatus,
+    this.paymentId,
   });
 
   Map<String, dynamic> toMap() {
@@ -32,6 +38,9 @@ class Order {
       'city': city,
       'state': state,
       'pincode': pincode,
+      'paymentMethod': paymentMethod,
+      'paymentStatus': paymentStatus,
+      'paymentId': paymentId,
     };
   }
 
@@ -46,6 +55,9 @@ class Order {
       city: map['city'],
       state: map['state'],
       pincode: map['pincode'],
+      paymentMethod: map['paymentMethod'] ?? 'COD',
+      paymentStatus: map['paymentStatus'] ?? 'Pending',
+      paymentId: map['paymentId'],
     );
   }
 }

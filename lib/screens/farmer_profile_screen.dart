@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../database/database_helper.dart';
+import '../database/firebase_database_helper.dart';
 import '../models/user.dart';
+import '../theme/app_theme.dart';
 import '../widgets/farmer_app_drawer.dart';
 
 class FarmerProfileScreen extends StatefulWidget {
@@ -12,12 +13,10 @@ class FarmerProfileScreen extends StatefulWidget {
   });
 
   @override
-  State<FarmerProfileScreen> createState() =>
-      _FarmerProfileScreenState();
+  State<FarmerProfileScreen> createState() => _FarmerProfileScreenState();
 }
 
-class _FarmerProfileScreenState
-    extends State<FarmerProfileScreen> {
+class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
   late TextEditingController nameController;
   late TextEditingController emailController;
   late TextEditingController phoneController;
@@ -32,21 +31,13 @@ class _FarmerProfileScreenState
   @override
   void initState() {
     super.initState();
-
-    nameController =
-        TextEditingController(text: widget.user.name);
-    emailController =
-        TextEditingController(text: widget.user.email);
-    phoneController =
-        TextEditingController(text: widget.user.phone);
-    addressController =
-        TextEditingController(text: widget.user.addressLine);
-    cityController =
-        TextEditingController(text: widget.user.city);
-    stateController =
-        TextEditingController(text: widget.user.state);
-    pincodeController =
-        TextEditingController(text: widget.user.pincode);
+    nameController = TextEditingController(text: widget.user.name);
+    emailController = TextEditingController(text: widget.user.email);
+    phoneController = TextEditingController(text: widget.user.phone);
+    addressController = TextEditingController(text: widget.user.addressLine);
+    cityController = TextEditingController(text: widget.user.city);
+    stateController = TextEditingController(text: widget.user.state);
+    pincodeController = TextEditingController(text: widget.user.pincode);
   }
 
   @override
@@ -67,9 +58,8 @@ class _FarmerProfileScreenState
         emailController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            "Name, email and phone are required",
-          ),
+          content: Text("Name, email and phone number are required."),
+          backgroundColor: AppColors.error,
         ),
       );
       return;
@@ -80,7 +70,7 @@ class _FarmerProfileScreenState
     });
 
     try {
-      await DatabaseHelper.instance.updateUser(
+      await FirebaseDatabaseHelper.instance.updateUser(
         widget.user.id,
         {
           'name': nameController.text.trim(),
@@ -94,9 +84,15 @@ class _FarmerProfileScreenState
         },
       );
 
-      if (!mounted) {
-        return;
-      }
+      widget.user.name = nameController.text.trim();
+      widget.user.email = emailController.text.trim();
+      widget.user.phone = phoneController.text.trim();
+      widget.user.addressLine = addressController.text.trim();
+      widget.user.city = cityController.text.trim();
+      widget.user.state = stateController.text.trim();
+      widget.user.pincode = pincodeController.text.trim();
+
+      if (!mounted) return;
 
       setState(() {
         isSaving = false;
@@ -105,15 +101,12 @@ class _FarmerProfileScreenState
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            "Profile updated successfully",
-          ),
+          content: Text("Farm profile updated successfully!"),
+          backgroundColor: AppColors.success,
         ),
       );
     } catch (e) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       setState(() {
         isSaving = false;
@@ -121,9 +114,8 @@ class _FarmerProfileScreenState
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            "Failed to update profile: $e",
-          ),
+          content: Text("Failed to update profile: $e"),
+          backgroundColor: AppColors.error,
         ),
       );
     }
@@ -145,11 +137,14 @@ class _FarmerProfileScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          "My Profile",
+          "Farm Profile",
           style: TextStyle(
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w800,
+            fontSize: 18,
+            color: AppColors.textPrimary,
           ),
         ),
       ),
@@ -157,176 +152,204 @@ class _FarmerProfileScreenState
         selectedRoute: "/farmer-profile",
         user: widget.user,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(25),
-        child: Center(
-          child: Container(
-            width: 650,
-            padding: const EdgeInsets.all(25),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.shade300,
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 680),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
             child: Column(
               children: [
-                CircleAvatar(
-                  radius: 50,
-                  backgroundColor: Colors.green.shade100,
-                  child: Icon(
-                    Icons.agriculture,
-                    size: 55,
-                    color: Colors.green.shade700,
+                // Farmer Card
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.border),
+                    boxShadow: AppColors.softShadow,
                   ),
-                ),
-                const SizedBox(height: 15),
-                Text(
-                  widget.user.name,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  "Farmer",
-                  style: TextStyle(
-                    color: Colors.green.shade700,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 25),
-                _field(
-                  controller: nameController,
-                  label: "Name",
-                  icon: Icons.person,
-                ),
-                const SizedBox(height: 15),
-                _field(
-                  controller: emailController,
-                  label: "Email",
-                  icon: Icons.email,
-                ),
-                const SizedBox(height: 15),
-                _field(
-                  controller: phoneController,
-                  label: "Phone",
-                  icon: Icons.phone,
-                ),
-                const SizedBox(height: 15),
-                _field(
-                  controller: addressController,
-                  label: "Address",
-                  icon: Icons.home,
-                ),
-                const SizedBox(height: 15),
-                _field(
-                  controller: cityController,
-                  label: "City",
-                  icon: Icons.location_city,
-                ),
-                const SizedBox(height: 15),
-                _field(
-                  controller: stateController,
-                  label: "State",
-                  icon: Icons.map,
-                ),
-                const SizedBox(height: 15),
-                _field(
-                  controller: pincodeController,
-                  label: "Pincode",
-                  icon: Icons.pin_drop,
-                ),
-                const SizedBox(height: 30),
-                Row(
-                  children: [
-                    Expanded(
-                      child: SizedBox(
-                        height: 52,
-                        child: OutlinedButton.icon(
-                          onPressed: isSaving
-                              ? null
-                              : () {
-                            if (isEditing) {
-                              _cancelEditing();
-                            } else {
-                              Navigator.pop(context);
-                            }
-                          },
-                          icon: const Icon(
-                            Icons.arrow_back,
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          gradient: AppColors.heroGradient,
+                          shape: BoxShape.circle,
+                          boxShadow: AppColors.floatingShadow,
+                        ),
+                        child: const Center(
+                          child: Icon(
+                            Icons.person_rounded,
+                            size: 40,
+                            color: Colors.white,
                           ),
-                          label: const Text(
-                            "Back",
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Text(
+                        widget.user.name,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary,
+                          letterSpacing: -0.4,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        widget.user.email,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryLight,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.verified_user_rounded,
+                              size: 15,
+                              color: AppColors.primary,
+                            ),
+                            SizedBox(width: 6),
+                            Text(
+                              "Registered Farmer",
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primaryDark,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Form Details Card
+                Container(
+                  padding: const EdgeInsets.all(22),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.border),
+                    boxShadow: AppColors.softShadow,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            "Farmer Information",
                             style: TextStyle(
                               fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textPrimary,
                             ),
                           ),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor:
-                            Colors.green.shade700,
-                            side: BorderSide(
-                              color: Colors.green.shade700,
+                          TextButton.icon(
+                            onPressed: () {
+                              if (isEditing) {
+                                _cancelEditing();
+                              } else {
+                                setState(() {
+                                  isEditing = true;
+                                });
+                              }
+                            },
+                            icon: Icon(
+                              isEditing
+                                  ? Icons.close_rounded
+                                  : Icons.edit_rounded,
+                              size: 16,
                             ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius:
-                              BorderRadius.circular(10),
+                            label: Text(isEditing ? "Cancel" : "Edit"),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      _buildField("Full Name", nameController, Icons.person_outline_rounded),
+                      const SizedBox(height: 14),
+
+                      _buildField("Email Address", emailController, Icons.mail_outline_rounded),
+                      const SizedBox(height: 14),
+
+                      _buildField("Contact Phone", phoneController, Icons.phone_outlined),
+                      const SizedBox(height: 14),
+
+                      _buildField("Farm Location / Address", addressController, Icons.home_outlined),
+                      const SizedBox(height: 14),
+
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildField("City / District", cityController, Icons.location_city_outlined),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildField("State", stateController, Icons.map_outlined),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+
+                      _buildField("Pincode", pincodeController, Icons.pin_drop_outlined),
+                      const SizedBox(height: 24),
+
+                      if (isEditing)
+                        SizedBox(
+                          width: double.infinity,
+                          height: 50,
+                          child: ElevatedButton.icon(
+                            onPressed: isSaving ? null : _saveProfile,
+                            icon: isSaving
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(Icons.check_circle_rounded),
+                            label: Text(
+                              isSaving ? "Saving..." : "Save Farm Details",
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              elevation: 0,
                             ),
                           ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 15),
-                    Expanded(
-                      child: SizedBox(
-                        height: 52,
-                        child: ElevatedButton.icon(
-                          onPressed: isSaving
-                              ? null
-                              : () {
-                            if (isEditing) {
-                              _saveProfile();
-                            } else {
-                              setState(() {
-                                isEditing = true;
-                              });
-                            }
-                          },
-                          icon: Icon(
-                            isEditing
-                                ? Icons.save
-                                : Icons.edit,
-                          ),
-                          label: Text(
-                            isEditing
-                                ? "Save Changes"
-                                : "Edit Profile",
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                            Colors.green.shade700,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius:
-                              BorderRadius.circular(10),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
+                const SizedBox(height: 30),
               ],
             ),
           ),
@@ -335,26 +358,54 @@ class _FarmerProfileScreenState
     );
   }
 
-  Widget _field({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-  }) {
-    return TextField(
-      controller: controller,
-      enabled: isEditing,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon),
-        filled: true,
-        fillColor: isEditing
-            ? Colors.green.shade50
-            : Colors.grey.shade100,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
+  Widget _buildField(
+    String label,
+    TextEditingController controller,
+    IconData icon,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textSecondary,
+          ),
         ),
-      ),
+        const SizedBox(height: 6),
+        TextField(
+          controller: controller,
+          enabled: isEditing,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+          decoration: InputDecoration(
+            prefixIcon: Icon(
+              icon,
+              color: isEditing ? AppColors.primary : AppColors.textMuted,
+              size: 20,
+            ),
+            filled: true,
+            fillColor: isEditing ? Colors.white : AppColors.surfaceVariant,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: isEditing ? AppColors.border : Colors.transparent,
+              ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.border),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import '../database/database_helper.dart';
-import '../widgets/app_drawer.dart';
-import '../widgets/farmer_app_drawer.dart';
+import '../database/firebase_database_helper.dart';
 import '../models/product.dart';
 import '../models/user.dart';
+import '../theme/app_theme.dart';
 import 'cart_screen.dart';
 
 class ProductDetailsScreen extends StatefulWidget {
@@ -17,27 +16,21 @@ class ProductDetailsScreen extends StatefulWidget {
   });
 
   @override
-  State<ProductDetailsScreen> createState() =>
-      _ProductDetailsScreenState();
+  State<ProductDetailsScreen> createState() => _ProductDetailsScreenState();
 }
 
-class _ProductDetailsScreenState
-    extends State<ProductDetailsScreen> {
+class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   int selectedQuantity = 1;
   bool isAddingToCart = false;
 
   Future<void> addProductToCart() async {
-    if (isAddingToCart) {
-      return;
-    }
+    if (isAddingToCart) return;
 
     if (widget.product.quantity < 1) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            "This product is out of stock",
-          ),
-          backgroundColor: Colors.red,
+          content: Text("This product is currently out of stock."),
+          backgroundColor: AppColors.error,
         ),
       );
       return;
@@ -48,54 +41,35 @@ class _ProductDetailsScreenState
     });
 
     try {
-      await DatabaseHelper.instance.addToCart({
+      await FirebaseDatabaseHelper.instance.addToCart({
         'userId': widget.user.id,
         'productId': widget.product.id,
         'quantity': selectedQuantity,
       });
 
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            "${widget.product.name} added to cart",
-          ),
-          backgroundColor: Colors.green.shade700,
-          duration:
-          const Duration(seconds: 1),
+          content: Text("Added $selectedQuantity ${widget.product.unit} to cart"),
+          backgroundColor: AppColors.primary,
+          duration: const Duration(seconds: 2),
         ),
       );
-
-      await Future.delayed(
-        const Duration(milliseconds: 500),
-      );
-
-      if (!mounted) {
-        return;
-      }
 
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => CartScreen(
-            user: widget.user,
-          ),
+          builder: (context) => CartScreen(user: widget.user),
         ),
       );
     } catch (e) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            "Failed to add product: $e",
-          ),
-          backgroundColor: Colors.red,
+          content: Text("Failed to add product: $e"),
+          backgroundColor: AppColors.error,
         ),
       );
 
@@ -108,420 +82,545 @@ class _ProductDetailsScreenState
   @override
   Widget build(BuildContext context) {
     final Product product = widget.product;
+    final bool isOutOfStock = product.quantity <= 0;
+    final double totalPrice = product.price * selectedQuantity;
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text(
-          "Product Details",
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
+        title: Text(
+          product.name,
+          style: const TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 17,
+            color: AppColors.textPrimary,
           ),
         ),
-        backgroundColor:
-        Colors.green.shade700,
-        foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(
-              Icons.shopping_cart_outlined,
+              Icons.shopping_bag_outlined,
+              color: AppColors.textPrimary,
             ),
             onPressed: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) =>
-                      CartScreen(
-                        user: widget.user,
-                      ),
+                  builder: (context) => CartScreen(user: widget.user),
                 ),
               );
             },
           ),
+          const SizedBox(width: 8),
         ],
       ),
-      drawer: widget.user.role == "Farmer"
-          ? FarmerAppDrawer(
-        selectedRoute: "/products",
-        user: widget.user,
-      )
-          : AppDrawer(
-        selectedRoute: "/products",
-        user: widget.user,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment:
-          CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: double.infinity,
-              height: 260,
-              decoration: BoxDecoration(
-                color: Colors.green.shade50,
-                borderRadius:
-                BorderRadius.circular(20),
-              ),
-              child: Center(
-                child: Icon(
-                  _getProductIcon(
-                    product.category,
-                  ),
-                  size: 110,
-                  color:
-                  Colors.green.shade700,
-                ),
-              ),
-            ),
-            const SizedBox(height: 25),
-            Text(
-              product.name,
-              style: const TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding:
-              const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 6,
-              ),
-              decoration: BoxDecoration(
-                color:
-                Colors.green.shade50,
-                borderRadius:
-                BorderRadius.circular(20),
-              ),
-              child: Text(
-                product.category,
-                style: TextStyle(
-                  color:
-                  Colors.green.shade700,
-                  fontWeight:
-                  FontWeight.bold,
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              "₹${product.price.toStringAsFixed(0)} / ${product.unit}",
-              style: TextStyle(
-                fontSize: 24,
-                color:
-                Colors.green.shade700,
-                fontWeight:
-                FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Icon(
-                  Icons.inventory_2_outlined,
-                  color:
-                  Colors.grey.shade700,
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  "Available: ${product.quantity} ${product.unit}",
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight:
-                    FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 15),
-            Row(
-              children: [
-                Icon(
-                  Icons.person_outline,
-                  color:
-                  Colors.grey.shade700,
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  product.farmerName,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight:
-                    FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 25),
-            const Text(
-              "Description",
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight:
-                FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              product.description,
-              style: TextStyle(
-                fontSize: 15,
-                color:
-                Colors.grey.shade700,
-                height: 1.5,
-              ),
-            ),
-            const SizedBox(height: 30),
-            const Text(
-              "Select Quantity",
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight:
-                FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 15),
-            Row(
-              children: [
-                Container(
-                  decoration:
-                  BoxDecoration(
-                    border: Border.all(
-                      color:
-                      Colors.grey.shade300,
-                    ),
-                    borderRadius:
-                    BorderRadius.circular(
-                      12,
-                    ),
-                  ),
-                  child: Row(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 680),
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      IconButton(
-                        onPressed:
-                        selectedQuantity > 1
-                            ? () {
-                          setState(() {
-                            selectedQuantity--;
-                          });
-                        }
-                            : null,
-                        icon: const Icon(
-                          Icons.remove,
+                      // Hero Image Card
+                      Container(
+                        width: double.infinity,
+                        height: 280,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: AppColors.border),
+                          boxShadow: AppColors.cardShadow,
+                        ),
+                        child: Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(24),
+                              child: product.image.isNotEmpty
+                                  ? Image.network(
+                                      product.image,
+                                      width: double.infinity,
+                                      height: 280,
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) =>
+                                              _buildImageFallback(product),
+                                    )
+                                  : _buildImageFallback(product),
+                            ),
+                            // Category Tag
+                            Positioned(
+                              top: 16,
+                              left: 16,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.95),
+                                  borderRadius: BorderRadius.circular(20),
+                                  boxShadow: AppColors.softShadow,
+                                ),
+                                child: Text(
+                                  product.category,
+                                  style: const TextStyle(
+                                    color: AppColors.primaryDark,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            // Stock Status Pill
+                            Positioned(
+                              top: 16,
+                              right: 16,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isOutOfStock
+                                      ? AppColors.errorBg
+                                      : AppColors.successBg,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  isOutOfStock ? "Out of Stock" : "In Stock",
+                                  style: TextStyle(
+                                    color: isOutOfStock
+                                        ? AppColors.error
+                                        : AppColors.success,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
+                      const SizedBox(height: 22),
+
+                      // Name & Price
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  product.name,
+                                  style: const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.textPrimary,
+                                    letterSpacing: -0.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.inventory_2_outlined,
+                                      size: 15,
+                                      color: AppColors.textMuted,
+                                    ),
+                                    const SizedBox(width: 5),
+                                    Text(
+                                      "${product.quantity} ${product.unit} Available in Harvest",
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        color: AppColors.textSecondary,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                "₹${product.price.toStringAsFixed(0)}",
+                                style: const TextStyle(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                              Text(
+                                "per ${product.unit}",
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textMuted,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Farmer Trust Card
                       Container(
-                        width: 45,
-                        alignment:
-                        Alignment.center,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppColors.border),
+                          boxShadow: AppColors.softShadow,
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryLight,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.person_rounded,
+                                color: AppColors.primary,
+                                size: 26,
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    "HARVESTED BY",
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.textMuted,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    product.farmerName,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  const Row(
+                                    children: [
+                                      Icon(
+                                        Icons.verified_rounded,
+                                        size: 13,
+                                        color: AppColors.primary,
+                                      ),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        "Verified Local Farmer",
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: AppColors.textSecondary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 22),
+
+                      // Description
+                      const Text(
+                        "Product Details",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppColors.border),
+                        ),
                         child: Text(
-                          "$selectedQuantity",
-                          style:
-                          const TextStyle(
-                            fontSize: 18,
-                            fontWeight:
-                            FontWeight.bold,
+                          product.description.isNotEmpty
+                              ? product.description
+                              : "Pure, freshly picked agricultural products delivered straight from the farm to maintain maximum freshness, nutrition, and taste.",
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: AppColors.textSecondary,
+                            height: 1.6,
                           ),
                         ),
                       ),
-                      IconButton(
-                        onPressed:
-                        selectedQuantity <
-                            product.quantity
-                            ? () {
-                          setState(() {
-                            selectedQuantity++;
-                          });
-                        }
-                            : null,
-                        icon: const Icon(
-                          Icons.add,
+                      const SizedBox(height: 22),
+
+                      // Quality Assurances
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _assuranceBadge(
+                              Icons.eco_rounded,
+                              "100% Organic",
+                              "No synthetic sprays",
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _assuranceBadge(
+                              Icons.local_shipping_rounded,
+                              "Direct Sourced",
+                              "Fresh same-day pack",
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 22),
+
+                      // Quantity Stepper
+                      const Text(
+                        "Select Quantity",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: AppColors.border),
+                              boxShadow: AppColors.softShadow,
+                            ),
+                            child: Row(
+                              children: [
+                                IconButton(
+                                  onPressed: selectedQuantity > 1
+                                      ? () {
+                                          setState(() {
+                                            selectedQuantity--;
+                                          });
+                                        }
+                                      : null,
+                                  icon: const Icon(Icons.remove_rounded),
+                                  color: AppColors.primary,
+                                ),
+                                Container(
+                                  width: 44,
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    "$selectedQuantity",
+                                    style: const TextStyle(
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  onPressed:
+                                      selectedQuantity < product.quantity
+                                          ? () {
+                                              setState(() {
+                                                selectedQuantity++;
+                                              });
+                                            }
+                                          : null,
+                                  icon: const Icon(Icons.add_rounded),
+                                  color: AppColors.primary,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Text(
+                            product.unit,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Sticky Bottom Checkout Bar
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border(
+                    top: BorderSide(color: AppColors.border.withValues(alpha: 0.8)),
+                  ),
+                  boxShadow: AppColors.softShadow,
+                ),
+                child: SafeArea(
+                  child: Row(
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            "Total Price",
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textMuted,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            "₹${totalPrice.toStringAsFixed(0)}",
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 24),
+                      Expanded(
+                        child: SizedBox(
+                          height: 52,
+                          child: ElevatedButton(
+                            onPressed:
+                                isOutOfStock || isAddingToCart ? null : addProductToCart,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              disabledBackgroundColor: Colors.grey.shade300,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: isAddingToCart
+                                ? const SizedBox(
+                                    height: 22,
+                                    width: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(
+                                        Icons.shopping_bag_outlined,
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        isOutOfStock
+                                            ? "Out of Stock"
+                                            : "Add to Cart",
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 15),
-                Text(
-                  product.unit,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color:
-                    Colors.grey.shade700,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 30),
-            Container(
-              padding:
-              const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color:
-                Colors.green.shade50,
-                borderRadius:
-                BorderRadius.circular(15),
               ),
-              child: Row(
-                mainAxisAlignment:
-                MainAxisAlignment
-                    .spaceBetween,
-                children: [
-                  const Text(
-                    "Total Price",
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight:
-                      FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    "₹${(product.price * selectedQuantity).toStringAsFixed(0)}",
-                    style: TextStyle(
-                      fontSize: 22,
-                      color:
-                      Colors.green.shade700,
-                      fontWeight:
-                      FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 25),
-            Row(
-              children: [
-                Expanded(
-                  child: SizedBox(
-                    height: 55,
-                    child:
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.pop(
-                          context,
-                        );
-                      },
-                      icon: const Icon(
-                        Icons.arrow_back,
-                      ),
-                      label: const Text(
-                        "Back",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight:
-                          FontWeight.bold,
-                        ),
-                      ),
-                      style:
-                      OutlinedButton
-                          .styleFrom(
-                        foregroundColor:
-                        Colors.green
-                            .shade700,
-                        side: BorderSide(
-                          color: Colors.green
-                              .shade700,
-                        ),
-                        shape:
-                        RoundedRectangleBorder(
-                          borderRadius:
-                          BorderRadius
-                              .circular(
-                            12,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: SizedBox(
-                    height: 55,
-                    child:
-                    ElevatedButton.icon(
-                      onPressed:
-                      isAddingToCart
-                          ? null
-                          : addProductToCart,
-                      icon: isAddingToCart
-                          ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child:
-                        CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor:
-                          AlwaysStoppedAnimation<
-                              Color>(
-                            Colors.white,
-                          ),
-                        ),
-                      )
-                          : const Icon(
-                        Icons
-                            .shopping_cart_outlined,
-                      ),
-                      label: Text(
-                        isAddingToCart
-                            ? "Adding..."
-                            : "Add to Cart",
-                        style:
-                        const TextStyle(
-                          fontSize: 16,
-                          fontWeight:
-                          FontWeight.bold,
-                        ),
-                      ),
-                      style:
-                      ElevatedButton
-                          .styleFrom(
-                        backgroundColor:
-                        Colors.green
-                            .shade700,
-                        foregroundColor:
-                        Colors.white,
-                        disabledBackgroundColor:
-                        Colors.green
-                            .shade400,
-                        disabledForegroundColor:
-                        Colors.white,
-                        shape:
-                        RoundedRectangleBorder(
-                          borderRadius:
-                          BorderRadius
-                              .circular(
-                            12,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  IconData _getProductIcon(String category) {
-    switch (category.toLowerCase()) {
-      case "vegetables":
-        return Icons.eco;
-      case "grains":
-        return Icons.grass;
-      case "fruits":
-        return Icons.apple;
-      case "dairy":
-        return Icons.local_drink;
-      case "spices":
-        return Icons.spa;
-      default:
-        return Icons.agriculture;
-    }
+  Widget _buildImageFallback(Product product) {
+    return Image.network(
+      AppImages.getCategoryPhoto(product.category),
+      width: double.infinity,
+      height: 280,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) => Container(
+        color: AppColors.surfaceVariant,
+      ),
+    );
+  }
+
+  Widget _assuranceBadge(IconData icon, String title, String subtitle) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.primaryLight,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: AppColors.primary, size: 20),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
