@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 
 class FirebaseDatabaseHelper {
   static final FirebaseDatabaseHelper instance =
-  FirebaseDatabaseHelper._internal();
+      FirebaseDatabaseHelper._internal();
 
   FirebaseDatabaseHelper._internal();
 

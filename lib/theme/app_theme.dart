@@ -1,30 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class AppColors {
+abstract final class AppColors {
   // Primary Palette - Fresh Agriculture Emerald
   static const Color primary = Color(0xFF0F7A43);
   static const Color primaryDark = Color(0xFF09522D);
   static const Color primaryLight = Color(0xFFE8F7EE);
-  static const Color primaryMedium = Color(0xFF38A169);
 
   // Secondary & Accents
   static const Color secondary = Color(0xFFE67E22); // Warm Harvest Orange
-  static const Color secondaryLight = Color(0xFFFEF3E8);
-  static const Color accentYellow = Color(0xFFF59E0B); // Amber / Gold
   static const Color accentGreen = Color(0xFF10B981);
 
   // Background & Surface
   static const Color background = Color(0xFFF6F8FA);
   static const Color surface = Color(0xFFFFFFFF);
   static const Color surfaceVariant = Color(0xFFF1F5F3);
-  static const Color cardBg = Color(0xFFFFFFFF);
 
   // Text Colors
   static const Color textPrimary = Color(0xFF192A24);
   static const Color textSecondary = Color(0xFF4A5568);
   static const Color textMuted = Color(0xFF8C9BAE);
-  static const Color textLight = Color(0xFFFFFFFF);
 
   // Borders & Dividers
   static const Color border = Color(0xFFE4E9EC);
@@ -59,24 +54,17 @@ class AppColors {
     end: Alignment.bottomRight,
   );
 
-  static const LinearGradient cardSoftGradient = LinearGradient(
-    colors: [Color(0xFFFFFFFF), Color(0xFFF9FBFA)],
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-  );
-
   // Ambient Shadows
-  static List<BoxShadow> get softShadow => [
-        const BoxShadow(
+  static List<BoxShadow> get softShadow => const [
+        BoxShadow(
           color: Color(0x08000000),
           blurRadius: 12,
           offset: Offset(0, 4),
-          spreadRadius: 0,
         ),
       ];
 
-  static List<BoxShadow> get cardShadow => [
-        const BoxShadow(
+  static List<BoxShadow> get cardShadow => const [
+        BoxShadow(
           color: Color(0x0C12261E),
           blurRadius: 16,
           offset: Offset(0, 4),
@@ -84,8 +72,8 @@ class AppColors {
         ),
       ];
 
-  static List<BoxShadow> get floatingShadow => [
-        const BoxShadow(
+  static List<BoxShadow> get floatingShadow => const [
+        BoxShadow(
           color: Color(0x180F7A43),
           blurRadius: 20,
           offset: Offset(0, 8),
@@ -94,9 +82,7 @@ class AppColors {
       ];
 }
 
-class AppImages {
-  static const String heroFarm =
-      "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=1200&auto=format&fit=crop&q=80";
+abstract final class AppImages {
   static const String farmerHero =
       "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=1200&auto=format&fit=crop&q=80";
 
@@ -132,7 +118,7 @@ class AppImages {
   }
 }
 
-class AppTheme {
+abstract final class AppTheme {
   static ThemeData get lightTheme {
     final String? fontFam = GoogleFonts.plusJakartaSans().fontFamily;
 
@@ -153,23 +139,22 @@ class AppTheme {
         error: AppColors.error,
         onError: Colors.white,
       ),
-      appBarTheme: AppBarTheme(
+      appBarTheme: const AppBarTheme(
         elevation: 0,
         backgroundColor: Colors.white,
         foregroundColor: AppColors.textPrimary,
         centerTitle: false,
         titleTextStyle: TextStyle(
-          fontFamily: fontFam,
           fontSize: 18,
           fontWeight: FontWeight.w700,
           color: AppColors.textPrimary,
         ),
-        iconTheme: const IconThemeData(
+        iconTheme: IconThemeData(
           color: AppColors.textPrimary,
         ),
       ),
       cardTheme: CardThemeData(
-        color: AppColors.cardBg,
+        color: AppColors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
@@ -188,8 +173,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: TextStyle(
-            fontFamily: fontFam,
+          textStyle: const TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w600,
           ),
@@ -203,8 +187,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: TextStyle(
-            fontFamily: fontFam,
+          textStyle: const TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w600,
           ),
@@ -227,13 +210,11 @@ class AppTheme {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.primary, width: 1.8),
         ),
-        hintStyle: TextStyle(
-          fontFamily: fontFam,
+        hintStyle: const TextStyle(
           fontSize: 14,
           color: AppColors.textMuted,
         ),
-        labelStyle: TextStyle(
-          fontFamily: fontFam,
+        labelStyle: const TextStyle(
           fontSize: 14,
           color: AppColors.textSecondary,
         ),

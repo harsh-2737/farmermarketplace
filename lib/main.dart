@@ -4,7 +4,6 @@ import 'firebase_options.dart';
 import 'database/firebase_database_helper.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
-
 import 'theme/app_theme.dart';
 
 void main() async {
